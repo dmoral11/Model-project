@@ -1,0 +1,114 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon May  1 21:17:16 2017
+
+@author: Daniela Morales C
+"""
+
+import numpy as np
+import xlrd
+
+doc = xlrd.open_workbook('Calculo_cantidad_de_acero.xlsx')
+worksheet = doc.sheet_by_name('Hoja1')
+
+Nmomentos = worksheet.cell(1,1) # Llamando el valor de numero de momentos de excel
+m = int(Nmomentos.value) # Asignando valor numerico, numero de momentos
+M = np.zeros((m,2), dtype = float) #Matriz que acomula los momentos y las distancias
+
+for i in range(m):
+    M[i,0] = float(format(worksheet.cell(5+i, 1).value)) #Llenand0 la matriz
+    M[i,1] = float(format(worksheet.cell(5+i, 2).value))
+print(M)
+
+FC = worksheet.cell(1,2) #f'c del concreto
+fc = int(FC.value)
+
+FY = worksheet.cell(1,3) #fy del acero
+fy = int(FY.value)
+
+Altura = worksheet.cell(1,4) #Altura de la sección
+h = float(Altura.value)
+
+Espesor = worksheet.cell(1,5) #Espesor de la sección
+e = float(Espesor.value) 
+
+Base = worksheet.cell(1,6) #Base de la sección
+b = float(Base.value) 
+
+DP = worksheet.cell(1,7) #Valor d'
+dp = float(DP.value)
+
+fi = 0.9 #Constante fi para diseño
+d = float(h)-float(e) #Valor 'd' que depende de la altura y el espesor
+em = fy/(0.85*fc) 
+
+
+
+R = np.zeros(int(m))
+for j in range(m): 
+   R[j] = (M[j,0]*(10**5))/(fi*b*(d**2)) #Calculo de 'R'
+print("Verctor R: ", R)
+
+
+if fc <= 280: #Calculo de beta
+ bi = 0.85
+elif fc >= 560:
+ bi = 0.65
+else:
+    bi=0.85-(fc-280)*(0.05/70)
+
+p1 = 14/fy   #Cuantia minima
+p2 = (0.8*(fc**0.5))/fy
+if p1>p2:
+    pmin = p1
+else:
+    pmin = p2
+print("Pmin: ", pmin) 
+
+cd=0.003/(0.005+0.003) 
+pmax = (bi*cd)/em #Cuantia maxima
+print("Pmax: ", pmax) 
+
+Rmax=float(pmax*fy*(1-((pmax*em)/2))) #Valor maximo que puede tomar 'R' para refuerzo sencillo
+
+Pdi = np.zeros(int(m)) #Vector que acomula las cuantias de diseño
+P = np.zeros(int(m)) #Vector que acomula las cuantias a usar
+
+n=0
+for n in range(m):
+   DM=0
+   As1=0
+   As2=0
+   
+   
+   Pdi[n] = (1/em)*(1-((1-((2*em*R[n])/fy))**0.5)) #Calculo de la cuantia de diseño
+   
+   if Pdi[n]<pmin:
+       P[n] = pmin
+     
+   elif Pdi[n]>pmax:
+       DM = (M[n,0])-((Rmax*fi*b*(d**2))/(10**5))
+       print('DM: ', DM)
+       As1 = pmax*b*d
+       c = (As1*fy)/(0.85*fc*b*bi)
+       
+       if c<d:
+           esp = (0.003*(c-dp))/c
+           es = (0.003*(d-c))/c
+       else:
+           print('Requiere aunmento de sección')
+         
+       if esp >= 0.0020 and es >= 0.005:
+           As2 = (DM*(10**5))/(fi*fy*(d-dp))
+           As = As1+As2
+           print(As)
+           P[n] = float(As/(b*(d**2)))
+       else:
+           print('Error que pronto será solucionado')
+   else:
+       P[n]=Pdi[n]
+
+
+print("Verctor Pdi: ", Pdi)
+
+print("Verctor P: ", P)
