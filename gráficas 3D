@@ -1,0 +1,169 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Oct 29 15:10:09 2016
+
+@author: Asus
+"""
+
+import numpy as np
+import scipy.special as sci
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
+from matplotlib.ticker import LinearLocator
+import matplotlib.pyplot as mplot
+import os
+from os import sys
+sys.path.append('C:\\Users\\Asus\\Documents\\USB\\EAFIT\\Semestre 4\\ModelacionComputacional\\Proyecto\\Programas')
+#sys.path.append('/Users/jvergar2/Dropbox/15_RiskAndDesignConsulting/SOFTWARE/RDCseries')
+#os.system ('/Users/casierraa/Dropbox/R&DC CONSULTING/SOFTWARE/RDCseries')
+import FunctionsRDCsignals as rdc
+##################################################  PARÁMETROS #########################################################
+
+################ ENTRADA ###########################
+Beta = 1.0 # Velocidad de la onda incidente en el medio
+Gamma = 0.0 # Ángulo de incidencia de la onda
+a = 1.0 # Radio del cañón
+#
+
+############## VECTOR DE POSICIONES ############################
+lix = -3.0 #Límite inferior para x
+lfx = 3.0 # Límite superior para x
+nx = 61 # Número de puntos a evaluar
+aux = np.linspace(lix, lfx, nx, dtype=float)
+X = aux/a # Adimensionalizando X
+
+############### VECTOR DE FRECUENCIAS ##############################
+Tt = 16.0 #Tiempo total que tendrá el pulso
+Tc = 4.0 # Tiempo en el que estará centrado el pulso
+fc = 1.0 # Frecuencia del pulso
+Nf= 2048
+Nt= 2*Nf+1
+dt = Tt/(Nt-1)
+
+deta = 2.0*a/Beta/Tt # Delta de frecuencias
+neta  = int(4*fc*2/deta) # Número de frecuencias que se evaluaran
+
+lieta = deta # #Límite inferior para eta
+lfeta = deta*neta # Límite superior para eta
+Eta = np.linspace(lieta, lfeta, neta, dtype=float)
+#
+
+desplaz = np.zeros((len(X), len(Eta)), dtype=complex) #Matriz de desplazamientos
+nfull = 2*len(Eta)+1
+
+######################################## CÁLCULO DE DESPLAZAMIENTOS #############################################
+
+desplaz = rdc.displacement(Beta, Gamma, a, X, Eta) #Llenando matriz de desplaza,ientos
+
+Amplitud = abs(desplaz) # Sacando valor absoluto para poder graficar
+
+################################################# GRAFICACIÓN #################################################
+
+####### FUNCIONES DE TRANSFERENCIA ############################################################################
+
+Puntos = np.array([-3.0, -2.0, -1.0, -0.6, 0.0, 0.6, 1.0, 2.0, 3.0], dtype=float) #Puntos donde evaluaré
+Etap = np.linspace(0.25, 2.0, 71)
+
+desplazp = rdc.displacement(Beta, Gamma, a, Puntos, Etap)
+Ap = abs(desplazp)
+mplot.figure(1)
+for i in range(0, len(Puntos)):
+    
+    mplot.plot(Etap,Ap[i,:], label='x='+str(Puntos[i]))
+    mplot.text(0.6, 4.5,'$\gamma$ = ' + str(round(Gamma * 180 / (np.pi))) + '°', fontsize=13)
+
+mplot.legend(fontsize=8)
+mplot.xlim(0.2,2.0)
+mplot.ylim(0.0,5.0)
+mplot.xlabel('Frecuencia $\eta$')
+mplot.ylabel('Amplitud')
+mplot.title('Funciones de transferencia')
+mplot.grid()
+#mplot.savefig('FuncionesTransferencia.pdf')
+mplot.show(1)
+
+############ GRÁFICA DE SUPERFICIE DE AMPLITUDES DE DESPLAZAMIENTO #############################################
+
+mplot.figure(3)
+incident = ([0.0, np.pi/6, np.pi/3, np.pi/2]) # Vector con los diferentes ángulos de incidencia
+EtaVIP = ([0.25, 0.75, 1.25])
+Xs = np.linspace(-3.0, 3.0, 100)
+
+for i in range (0, len(EtaVIP)):
+    
+    for j in range (0, len(incident)):
+        
+        ds = rdc.surfam(Beta, incident[j], a, Xs, EtaVIP[i])
+            
+        mplot.plot(Xs, abs(ds), label= '$\gamma$ = ' + str(round(incident[j] * 180 / (np.pi))) + '°')
+        mplot.text(-2.0, 4.4, '$\mathrm{\eta = }$' + str(EtaVIP[i]), fontsize= 13)
+    
+    mplot.legend(fontsize=10)    
+    mplot.xlim(-3.0, 3.0)
+    mplot.ylim(0.0, 5.0)
+    mplot.xlabel('x/a')
+    mplot.ylabel('Amplitud')
+    mplot.title('Superficie de amplitud de desplazamiento')
+    #mplot.savefig('SuperficieAmplitudDesplazamiento_' + str(i) + '.pdf')
+    mplot.grid()
+    mplot.show(3)
+
+
+############ GRÁFICA DE DESPLAZAMIENTOS EN 3D #########################################################################
+
+                          ## Es recomendable disminuir el número de frecuencias y posiciones#
+                          ## para lograr una mejor visualización de la gráfica 3D #
+                       ## Es por esto que preferí crear una nueva matriz de desplazamientos#
+                       # con  frecuencias y desplazamientos
+                       
+X1 = np.linspace(-3.0, 3.0, 61)
+Eta1 = np.linspace(0.25, 2.0, 71)
+desplaz3D = rdc.displacement(Beta, Gamma, a, X1, Eta1)
+A3D = abs(desplaz3D) # Amplitud
+
+fig = mplot.figure(2, figsize=(8,5))
+ax = fig.add_subplot(111, projection='3d')
+
+
+for i in range (0, len(X1)):
+    ax.plot_wireframe(X1[i]*np.ones(len(Eta1)), Eta1, A3D[i,:], color='black')
+
+for i in range(0, len(Eta1)):
+    ax.plot_wireframe(X1, Eta1[i]*np.ones(len(X1)), A3D[:,i], color='black')
+
+ax.set_xlabel('x/a')
+ax.set_ylabel('Frecuencia $\eta$')
+ax.set_zlabel('Amplitud')
+ax.set_title('Amplitudes de desplazamiento, $\gamma$ = ' + str(round (Gamma*180/np.pi)) + '°')
+ax.set_zlim3d(0.0, 5.0)
+#ax.view_init(azim= -45) #Comando para rotar gráfica un ángulo determinado
+#mplot.savefig('Grafica3D.pdf')
+mplot.show(2)
+
+############ PULSO DE RICKER #########################################################################
+
+Rick, T=rdc.ricker(Nt, Tt, Tc, fc)
+#rdc.grafsignalA(Rick, 'pulso' , -1.0 , 1.0 , dt , 1)
+x , Sas , Saf , nfs = rdc.Ftrans(Rick , Nt , dt , 10.0)
+####
+############ ANALISIS EN EL DOMINIO DEL TIEMPO #########################################################################
+#
+for j in range(0, len(X)):
+    V  = np.zeros(Nf, dtype=complex)
+    TF = np.zeros(Nt, dtype=complex)
+    
+    V[0:neta] = desplaz[j, :]
+    
+    for i in range(neta):
+        
+        TF[i+1] = V[i]
+        TF[-1-i] = np.conj(V[i])
+    
+    for i in range(Nt):
+        
+        TF[i] = Saf[i] * TF[i]
+        
+    signal = rdc.IFtrans(TF , Nt , dt)
+    rdc.grafsignalA(X[j] + signal, 'Sismogramas' + str(round (Gamma*180/np.pi)),-5.0, 5.0, dt, 3)
+    mplot.title('Sismogramas sintéticos sobre la superficie, $\gamma$ = ' + str(round (Gamma*180/np.pi)) + '°')
+    mplot.ylabel('Espacio')
