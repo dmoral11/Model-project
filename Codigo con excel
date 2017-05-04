@@ -5,8 +5,9 @@ Created on Mon May  1 21:17:16 2017
 @author: Daniela Morales C
 """
 
-import numpy as np
+import numpy as np #Abriendo librerias
 import xlrd
+from math import sqrt
 
 doc = xlrd.open_workbook('Calculo_cantidad_de_acero.xlsx')
 worksheet = doc.sheet_by_name('Hoja1')
@@ -73,45 +74,74 @@ Rmax=float(pmax*fy*(1-((pmax*em)/2))) #Valor maximo que puede tomar 'R' para ref
 
 Pdi = np.zeros(int(m)) #Vector que acomula las cuantias de diseño
 P = np.zeros(int(m)) #Vector que acomula las cuantias a usar
-
+As2 = np.zeros(int(m)) #Vector que acomula las areas de acero del doble refuerzo
+As = np.zeros(int(m)) #Vector que acomula las areas totales de acero en la zona de tension
+CD = np.zeros(int(m)) #Vector que acomula el valor c/d de la sección
+es = np.zeros(int(m)) #Vector que acomula el valor de la deformación del acero en tensión
+esp = np.zeros(int(m)) #Vector que acomula el valor de la deformación del acero en compresión           
+             
 n=0
 for n in range(m):
-   DM=0
-   As1=0
-   As2=0
+    DM=0
+    As1=0
+    Pdi[n] = (1/em)*(1-((1-((2*em*R[n])/fy))**0.5)) #Calculo de la cuantia de diseño
    
-   Pdi[n] = (1/em)*(1-((1-((2*em*R[n])/fy))**0.5)) #Calculo de la cuantia de diseño
-   
-   if Pdi[n]<pmin:
+    if Pdi[n]<pmin: #Si la cuantia de diseño es menor a la minimma se toma la minima
        P[n] = pmin
-     
-   elif Pdi[n]>pmax:
-       DM = (M[n,0])-((Rmax*fi*b*(d**2))/(10**5))
-       print('DM: ', DM)
+       As[n] = pmin*b*d
+       c = ((As[n])*fy)/(0.85*fc*b*bi)
+       CD[n] = c/d
+       esp[n] = 0
+       es[n] = (0.003*(d-c))/c
+         
+         
+    elif Pdi[n]>pmax:
+       DM = (M[n,0])-((Rmax*fi*b*(d**2))/(10**5)) #Momento que no alcanza a satisfacer la cuantia maxima
        As1 = pmax*b*d
        c = (As1*fy)/(0.85*fc*b*bi)
        
-       if c<d:   #### Que pasa cuando en diseño el doble refuerzo no fluye???
-           esp = (0.003*(c-dp))/c
-           es = (0.003*(d-c))/c
-       else:
-           print('Requiere aunmento de sección')
-         
-      
-       As2 = (DM*(10**5))/(fi*fy*(d-dp))
-       As = As1+As2
-       print(As)
-       P[n] = float(As/(b*d))
-      
-   else:
-       P[n]=Pdi[n]
-
-
-A = np.zeros(int(m))
-for i in range(m):
-    A[i] = P[i]*b*d
-    
+       As2[n] = (DM*(10**5))/(fi*fy*(d-dp))
+       As[n] = As1+As2[n]
+            
+       esp[n] = (0.003*(c-dp))/c
+       es[n] = (0.003*(d-c))/c
+       CD[n] = c/d
+       #### Que pasa cuando en diseño el doble refuerzo no fluye???     
+       if esp[n] <= 0.0021 and es[n] > 0.0049:  #Recalcular c
+           aa = float(0.85*fc*bi*b)
+           bb = float(As2[n]*6000 - As1*fy)
+           cc = float(-As2[n]*6000*dp)
+ 
+           if aa != 0:
+               x1 = (-bb + sqrt(bb**2 - 4*aa*cc)) / (2 * aa)
+               x2 = (-bb - sqrt(bb**2 - 4*aa*cc)) / (2 * aa)
+               print ('Soluciones de la ecuacion: ', x1, x2)
+               
+           else:
+               print('revisar valores')
+           
+           if x1 < 0:
+               c = x2        
+           else:
+               c = x1
+            
+           esp[n] = (0.003*(c-dp))/c
+           es[n] = (0.003*(d-c))/c
+           P[n] = float(As[n]/(b*d))
+           CD[n] = c/d
+    else:
+       P[n]=Pdi[n]  #Si la cuantia de diseño esta en los rangos permitidos se toma la de diseño.
+       As[n] = Pdi[n]*b*d
+       c = ((As[n])*fy)/(0.85*fc*b*bi)
+       CD[n] = c/d
+       esp[n] = 0
+       es[n] = (0.003*(d-c))/c
+     
 print("Verctor Pdi: ", Pdi)
 print("Verctor P: ", P)
-print("Verctor A: ", A)
+print("Verctor As: ", As)
+print("Verctor As2: ", As2)
+print("Verctor CD: ", CD)
+print("Verctor es: ", es)
+print("Verctor esp: ", esp)
 
