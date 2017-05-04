@@ -80,7 +80,6 @@ for n in range(m):
    As1=0
    As2=0
    
-   
    Pdi[n] = (1/em)*(1-((1-((2*em*R[n])/fy))**0.5)) #Calculo de la cuantia de diseño
    
    if Pdi[n]<pmin:
@@ -92,23 +91,27 @@ for n in range(m):
        As1 = pmax*b*d
        c = (As1*fy)/(0.85*fc*b*bi)
        
-       if c<d:
+       if c<d:   #### Que pasa cuando en diseño el doble refuerzo no fluye???
            esp = (0.003*(c-dp))/c
            es = (0.003*(d-c))/c
        else:
            print('Requiere aunmento de sección')
          
-       if esp >= 0.0020 and es >= 0.005:
-           As2 = (DM*(10**5))/(fi*fy*(d-dp))
-           As = As1+As2
-           print(As)
-           P[n] = float(As/(b*(d**2)))
-       else:
-           print('Error que pronto será solucionado')
+      
+       As2 = (DM*(10**5))/(fi*fy*(d-dp))
+       As = As1+As2
+       print(As)
+       P[n] = float(As/(b*d))
+      
    else:
        P[n]=Pdi[n]
 
 
+A = np.zeros(int(m))
+for i in range(m):
+    A[i] = P[i]*b*d
+    
 print("Verctor Pdi: ", Pdi)
-
 print("Verctor P: ", P)
+print("Verctor A: ", A)
+
