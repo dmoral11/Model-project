@@ -8,7 +8,7 @@ Created on Mon May  1 21:17:16 2017
 import numpy as np #Abriendo librerias
 import xlwt      # Para escribir en excel 
 import xlrd
-
+from xlutils.copy import copy
 
 
 doc = xlrd.open_workbook('Calculo_cantidad_de_acero.xlsx')
@@ -19,8 +19,8 @@ m = int(Nmomentos.value) # Asignando valor numerico, numero de momentos
 M = np.zeros((m,2), dtype = float) #Matriz que acomula los momentos y las distancias
 
 for i in range(m):
-    M[i,0] = float(format(worksheet.cell(5+i, 1).value)) #Llenand0 la matriz
-    M[i,1] = float(format(worksheet.cell(5+i, 2).value))
+    M[i,0] = float(format(worksheet.cell(10+i, 1).value)) #Llenand0 la matriz
+    M[i,1] = float(format(worksheet.cell(10+i, 2).value))
 print(M)
 
 FC = worksheet.cell(1,2) #f'c del concreto
@@ -143,29 +143,44 @@ print("Verctor CD: ", CD)
 print("Verctor es: ", es)
 print("Verctor esp: ", esp)
 
-ar = xlwt.Workbook()
-hoja = ar.add_sheet("Hoja1") 
-style0= xlwt.easyxf('font: name Times New Roman, colour red, bold on ;align: vert centre, horz center')
+ws = copy(doc)
+ws.save('Resultados_cantidad_de_acero.xlsx')
+
+rb = xlrd.open_workbook('Resultados_cantidad_de_acero.xlsx')
+wb = copy(rb)
+w_sheet = wb.get_sheet(0)
 
 
 
 for i in range (m):
     
-    hoja.write(1,2,fc) #f'c del concreto
-    hoja.write(1,3,fy) #fy del acero
-    hoja.write(1,4,h) #Altura de la sección
-    hoja.write(1,5,e) #Espesor de la sección
-    hoja.write(1,6,b) #Base de la sección
-    hoja.write(1,7,dp) #Valor d'
-    hoja.write(5+i,1,M[i,0], style0)
-    hoja.write(5+i,2,M[i,1], style0)
-    hoja.write(5+i,3,Pdi[i], style0)
-    hoja.write(5+i,4,P[i], style0)
-    hoja.write(5+i,5,As[i], style0)
-    hoja.write(5+i,6,As2[i], style0)
-    hoja.write(5+i,7,CD[i], style0)
-    hoja.write(5+i,8,es[i], style0)
-    hoja.write(5+i,9,esp[i], style0)
-   
+    w_sheet.write(3,1,"valor ø")
+    w_sheet.write(4,1,fi)
+    w_sheet.write(3,2,"valor β")
+    w_sheet.write(4,2,bi)
+    w_sheet.write(3,3,"valor ρmin")
+    w_sheet.write(4,3,pmin)
+    w_sheet.write(3,4,"valor ρmax")
+    w_sheet.write(4,4,pmax)   
     
-ar.save('Calculo_cantidad_de_acero_Resultados.xlsx')
+    
+    w_sheet.write(9,3,"Valor R")
+    w_sheet.write(9,4,"ρ de diseño")
+    w_sheet.write(9,5,"ρ de final") 
+    w_sheet.write(9,6,"c\d")    
+    w_sheet.write(9,7,"εs tensión")
+    w_sheet.write(9,8,"εs compresión")
+    w_sheet.write(9,9,"Area de acero Tensión")
+    w_sheet.write(9,10,"Area de acero Compresión")
+    
+    w_sheet.write(10+i,3,R[i])      
+    w_sheet.write(10+i,4,Pdi[i])
+    w_sheet.write(10+i,5,P[i])
+    w_sheet.write(10+i,6,CD[i])
+    w_sheet.write(10+i,7,es[i])
+    w_sheet.write(10+i,8,esp[i])
+    w_sheet.write(10+i,9,As[i])
+    w_sheet.write(10+i,10,As2[i])
+   
+ 
+wb.save('Resultados_cantidad_de_acero.xlsx')
