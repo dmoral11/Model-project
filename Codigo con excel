@@ -5,9 +5,69 @@ Created on Mon May  1 21:17:16 2017
 @author: Daniela Morales C
 """
 
+
+import easygui
 import numpy as np #Abriendo librerias
+import xlwt      # Para escribir en excel 
 import xlrd
-from math import sqrt
+from xlutils.copy import copy
+
+
+
+def mesh_gui():
+    try:
+        easygui.msgbox(msg="",
+        title="Sección Viga Rectangular", 
+        ok_button="Continuar",
+        image='viga.gif')
+        
+        
+        msg = "Geometria y materiales de la sección"
+        title = "Datos de la sección"
+        fieldNames = ["f'c [kg/cm^2]","fy [kg/cm^2]","Base (b) [cm]","Altura (h) [cm]","Recubimiento (r) [cm]","d' [cm]" ]
+        fieldValues = [210,4200,30,45,5,6]  # we start with blanks for the values
+        fieldValues = easygui.multenterbox(msg,title,fieldNames,fieldValues)
+    
+        fc = int(fieldValues[0])
+        fy = int(fieldValues[1])
+        b = int(fieldValues[2])
+        h = int(fieldValues[3])
+        e = int(fieldValues[4])
+        dp = int(fieldValues[5])        
+        
+        
+    except:
+        
+        image = "viga.gif"
+        print(image)
+        fc1 = input("fc [kg/cm^2]: ")
+        fy1 = input("fy [kg/cm^2]: ")
+        b1 = input("Base (b) [cm]: ")
+        h1 = input("Altura (h) [cm]: ")
+        e1 = input("Recubimiento (r) [cm]: ")
+        dp1= input("d' [cm]: ")
+        
+        fc = int(fc1)
+        fy = int(fy1)
+        b = int(b1)
+        h = int(h1)
+        e = int(e1)
+        dp = int(dp1)     
+
+    
+    return fc, fy, b, h, e, dp
+
+
+
+a = mesh_gui()
+
+fc = int(a[0])
+fy = int(a[1])
+b = float(a[2])
+h = float(a[3])
+e = float(a[4])
+dp = float(a[5])
+
 
 
 doc = xlrd.open_workbook('Calculo_cantidad_de_acero.xlsx')
@@ -18,27 +78,9 @@ m = int(Nmomentos.value) # Asignando valor numerico, numero de momentos
 M = np.zeros((m,2), dtype = float) #Matriz que acomula los momentos y las distancias
 
 for i in range(m):
-    M[i,0] = float(format(worksheet.cell(5+i, 1).value)) #Llenand0 la matriz
-    M[i,1] = float(format(worksheet.cell(5+i, 2).value))
+    M[i,0] = float(format(worksheet.cell(10+i, 1).value)) #Llenand0 la matriz
+    M[i,1] = float(format(worksheet.cell(10+i, 2).value))
 print(M)
-
-FC = worksheet.cell(1,2) #f'c del concreto
-fc = int(FC.value)
-
-FY = worksheet.cell(1,3) #fy del acero
-fy = int(FY.value)
-
-Altura = worksheet.cell(1,4) #Altura de la sección
-h = float(Altura.value)
-
-Espesor = worksheet.cell(1,5) #Espesor de la sección
-e = float(Espesor.value) 
-
-Base = worksheet.cell(1,6) #Base de la sección
-b = float(Base.value) 
-
-DP = worksheet.cell(1,7) #Valor d'
-dp = float(DP.value)
 
 fi = 0.9 #Constante fi para diseño
 d = float(h)-float(e) #Valor 'd' que depende de la altura y el espesor
@@ -48,7 +90,7 @@ print("m: ", em)
 
 R = np.zeros(int(m))
 for j in range(m): 
-   R[j] = (M[j,0]*(10**5))/(fi*b*(d**2)) #Calculo de 'R'
+   R[j] = round((M[j,0]*(10**5))/(fi*b*(d**2)),2) #Calculo de 'R'
 print("Verctor R: ", R)
 
 
@@ -61,19 +103,20 @@ else:
 
 p1 = 14/fy   #Cuantia minima
 p2 = (0.8*(fc**0.5))/fy
+     
 if p1>p2:
-    pmin = p1
+    pmin = round(p1,5)
 else:
-    pmin = p2
+    pmin = round(p2,5)
 print("Pmin: ", pmin) 
 
 cd=0.003/(0.005+0.003) 
-pmax = (bi*cd)/em #Cuantia maxima
+pmax = round((bi*cd)/em,5)#Cuantia maxima
 print("Pmax: ", pmax) 
 
 Rmax=float(pmax*fy*(1-((pmax*em)/2))) #Valor maximo que puede tomar 'R' para refuerzo sencillo
 print('Rmax ', Rmax)
-Rmin=float(pmin*fy*(1-((pmin*em)/2))) #Valor maximo que puede tomar 'R' para refuerzo sencillo
+Rmin=float(pmin*fy*(1-((pmin*em)/2))) #Valor minimo que puede tomar 'R' para refuerzo sencillo
 print('Rmin ', Rmin)
 
 Pdi = np.zeros(int(m)) #Vector que acomula las cuantias de diseño
@@ -88,15 +131,15 @@ n=0
 for n in range(m):
     DM=0
     As1=0
-    Pdi[n] = (1/em)*(1-((1-((2*em*R[n])/fy))**0.5)) #Calculo de la cuantia de diseño
+    Pdi[n] = round((1/em)*(1-((1-((2*em*R[n])/fy))**0.5)),5) #Calculo de la cuantia de diseño
    
     if Pdi[n]<pmin: #Si la cuantia de diseño es menor a la minimma se toma la minima
        P[n] = pmin
-       As[n] = P[n]*b*d
+       As[n] = round(P[n]*b*d,2)
        c = ((As[n])*fy)/(0.85*fc*b*bi)
-       CD[n] = c/d
+       CD[n] = round(c/d,4)
        esp[n] = 0
-       es[n] = (0.003*(d-c))/c
+       es[n] = round((0.003*(d-c))/c,4)
          
          
     elif Pdi[n]>pmax:
@@ -106,33 +149,33 @@ for n in range(m):
        print('As1', As1)
        c = (As1*fy)/(0.85*fc*b*bi)
        
-       As2[n] = (DM*(10**5))/(fi*fy*(d-dp))
-       As[n] = As1+As2[n]
+       As2[n] = round((DM*(10**5))/(fi*fy*(d-dp)),2)
+       As[n] = round(As1+As2[n],2)
             
-       esp[n] = (0.003*(c-dp))/c
-       es[n] = (0.003*(d-c))/c
-       CD[n] = c/d
+       esp[n] = round((0.003*(c-dp))/c,4)
+       es[n] = round((0.003*(d-c))/c,4)
+       P[n] = round(float(As[n]/(b*d)),5)
+       CD[n] = round(c/d,4)
            
        if esp[n] <= 0.0020 and es[n] > 0.0049:  #Recalcular c
            
            
-           esp[n] = (0.003*(c-dp))/c
-           es[n] = (0.003*(d-c))/c
-           P[n] = float(As[n]/(b*d))
-           CD[n] = c/d
-           As2[n] = ((DM*(10**5))/(fi*fy*(d-dp)))
-           As[n] = As1+As2[n]*((esp[n]*2000000)/fy) 
-           z=((esp[n]*2000000)/fy)
+           esp[n] = round((0.003*(c-dp))/c,4)
+           es[n] = round((0.003*(d-c))/c,4)
+           P[n] = round(float(As[n]/(b*d)),5)
+           CD[n] = round(c/d,4)
+           As2[n] = round(((DM*(10**5))/(fi*fy*(d-dp))),2)
+           As[n] = round(As1+As2[n]*((esp[n]*2000000)/fy),2)
            print('esp[n]', esp[n])
            print(fy)
-           print('z', z)
+           
     else:
        P[n]=Pdi[n]  #Si la cuantia de diseño esta en los rangos permitidos se toma la de diseño.
-       As[n] = Pdi[n]*b*d
+       As[n] = round(P[n]*b*d,2)
        c = ((As[n])*fy)/(0.85*fc*b*bi)
-       CD[n] = c/d
+       CD[n] = round(c/d,4)
        esp[n] = 0
-       es[n] = (0.003*(d-c))/c
+       es[n] = round((0.003*(d-c))/c,4)
      
 print("Verctor Pdi: ", Pdi)
 print("Verctor P: ", P)
@@ -141,5 +184,48 @@ print("Verctor As2: ", As2)
 print("Verctor CD: ", CD)
 print("Verctor es: ", es)
 print("Verctor esp: ", esp)
+
+ws = copy(doc)
+ws.save('Resultados_cantidad_de_acero.xls')
+
+rb = xlrd.open_workbook('Resultados_cantidad_de_acero.xls')
+wb = copy(rb)
+w_sheet = wb.get_sheet(0)
+
+
+
+for i in range (m):
+    
+    w_sheet.write(3,1,"valor ø")
+    w_sheet.write(4,1,fi)
+    w_sheet.write(3,2,"valor β")
+    w_sheet.write(4,2,bi)
+    w_sheet.write(3,3,"valor ρmin")
+    w_sheet.write(4,3,pmin)
+    w_sheet.write(3,4,"valor ρmax")
+    w_sheet.write(4,4,pmax)   
+    
+    
+    w_sheet.write(9,3,"Valor R")
+    w_sheet.write(9,4,"ρ de diseño")
+    w_sheet.write(9,5,"ρ de final") 
+    w_sheet.write(9,6,"c\d")    
+    w_sheet.write(9,7,"εs tensión")
+    w_sheet.write(9,8,"εs compresión")
+    w_sheet.write(9,9,"As")
+    w_sheet.write(9,10,"As'")
+    
+    w_sheet.write(10+i,3,R[i])      
+    w_sheet.write(10+i,4,Pdi[i])
+    w_sheet.write(10+i,5,P[i])
+    w_sheet.write(10+i,6,CD[i])
+    w_sheet.write(10+i,7,es[i])
+    w_sheet.write(10+i,8,esp[i])
+    w_sheet.write(10+i,9,As[i])
+    w_sheet.write(10+i,10,As2[i])
+   
+ 
+wb.save('Resultados_cantidad_de_acero.xls')
+
 
 
