@@ -77,7 +77,7 @@ dp = float(a[5])        #Valor d'
 
           
 #Caja con mensaje         
-easygui.msgbox("Abrir archivo que contenga listado de los momentos en [t.m]")      
+easygui.msgbox("Abrir archivo que contenga listado de los momentos en [t.m], asegurese de no dejar lineas en blanco")      
        
           
           
@@ -85,8 +85,10 @@ easygui.msgbox("Abrir archivo que contenga listado de los momentos en [t.m]")
 archivo1 = easygui.fileopenbox()
 archivo = open(archivo1)
 contenido = archivo.read().splitlines()
-w = int(len(contenido))
-m = w-1
+m = int(len(contenido))
+
+
+print(m)
 CO = np.asarray(contenido)
 
 
@@ -221,6 +223,7 @@ print("Verctor esp: ", esp)
 
 libro = xlwt.Workbook()                                         #Crea un nuevo libro de excel
 libro1 = libro.add_sheet("Resultados")                          #Añade una hoja
+libro1 = libro.add_sheet("Calculadora")                        
 libro.save('Resultados_cantidad_de_acero.xls')                  #Guarda el libro
 
 #Abriendo libro a editar
@@ -229,11 +232,10 @@ wb = copy(rb)
 w_sheet = wb.get_sheet(0)
 
 
-
+#Guardando resultados
 for i in range (m):
     
-    
-    
+   
     #Almacenando valores y titulos de las constantes
     
     w_sheet.write(2,2,"fc (kg/cm^2)")
@@ -287,6 +289,42 @@ for i in range (m):
     w_sheet.write(10+i,8,esp[i])
     w_sheet.write(10+i,9,As[i])
     w_sheet.write(10+i,10,As2[i])
-   
- 
+  
+    
+    
+    
+#Caluladora de tipo y cantidad de varillas
+w_sheet = wb.get_sheet(1) 
+
+w_sheet.write(3,2,"N°")
+w_sheet.write(3,4,"N°")
+w_sheet.write(3,3,"Área (cm^2)")
+w_sheet.write(3,5,"Área (cm^2)")
+
+
+for i in range (3,12):
+    w_sheet.write(1+i,2,i)
+    w_sheet.write(1+i,3,round(((3.14159/4)*((i*2.54/8)**2)),2))
+
+for i in range (12,21):
+    w_sheet.write(-8+i,4,i)
+    w_sheet.write(-8+i,5,round(((3.14159/4)*((i*2.54/8)**2)),2))
+
+w_sheet.write(16,2,"Momentos (t.m)")
+w_sheet.write(16,3,"Área (cm^2)")
+w_sheet.write(16,4,"Área real (cm^2)")
+w_sheet.write(16,5,"Numeracion")
+w_sheet.write(16,6,"Área (cm^2)")
+w_sheet.write(16,7,"Área real (cm^2)")
+w_sheet.write(16,8,"Numeracion")
+
+for i in range (m):
+    w_sheet.write(17+i,2,M[i])
+    w_sheet.write(17+i,3,As[i])
+    w_sheet.write(17+i,6,As2[i])
+
+    
+
 wb.save('Resultados_cantidad_de_acero.xls')
+
+
