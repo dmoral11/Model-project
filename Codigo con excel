@@ -77,7 +77,7 @@ dp = float(a[5])        #Valor d'
 
           
 #Caja con mensaje         
-easygui.msgbox("Abrir archivo que contenga listado de los momentos en [t.m], asegurese de no dejar lineas en blanco")      
+easygui.msgbox("Abrir archivo txt que contenga listado de los momentos en [t.m], asegurese de no dejar lineas en blanco")      
        
           
           
