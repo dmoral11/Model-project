@@ -179,7 +179,7 @@ for n in range(m):
     #Si la cuantia de diseño es mayorr a la máxima requiere doble refuerzo
      
     elif Pdi[n]>pmax:
-       DM = (M[n,0])-((Rmax*fi*b*(d**2))/(10**5))       #Momento que no alcanza a satisfacer la cuantia maxima
+       DM = (M[n])-((Rmax*fi*b*(d**2))/(10**5))       #Momento que no alcanza a satisfacer la cuantia maxima
        As1 = pmax*b*d
        c = (As1*fy)/(0.85*fc*b*bi)
        As2[n] = round((DM*(10**5))/(fi*fy*(d-dp)),2)
