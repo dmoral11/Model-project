@@ -1,31 +1,37 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon May  1 21:17:16 2017
+Created on Sun May 28 17:40:18 2017
 
 @author: Daniela Morales C
 """
 
 
-import easygui
-import numpy as np #Abriendo librerias
-import xlwt      # Para escribir en excel 
-import xlrd
-from xlutils.copy import copy
 
 
 
+#Importando librerías
+import easygui                                                   # Para programar interfaz gráfica
+import numpy as np                                               # Abriendo librerias
+import xlwt                                                      # Para escribir en excel 
+import xlrd                                                      # Para leer ficheros excel
+from xlutils.copy import copy                                    # Para copiar un archivo de excel                                  
+
+
+
+
+#Función para mostrar caja que recopila datos
 def mesh_gui():
     try:
-        easygui.msgbox(msg="",
+        easygui.msgbox(msg="",                                   # Caja con mensaje
         title="Sección Viga Rectangular", 
         ok_button="Continuar",
         image='viga.gif')
         
-        
-        msg = "Geometria y materiales de la sección"
+        # Crea caja para ingresar datos
+        msg = "Geometria y materiales de la sección"             
         title = "Datos de la sección"
         fieldNames = ["f'c [kg/cm^2]","fy [kg/cm^2]","Base (b) [cm]","Altura (h) [cm]","Recubimiento (r) [cm]","d' [cm]" ]
-        fieldValues = [210,4200,30,45,5,6]  # we start with blanks for the values
+        fieldValues = [210,4200,30,45,5,6]                       # Valores por defecto
         fieldValues = easygui.multenterbox(msg,title,fieldNames,fieldValues)
     
         fc = int(fieldValues[0])
@@ -37,7 +43,7 @@ def mesh_gui():
         
         
     except:
-        
+        #En caso de no tener Easygui los datos apareceran en pantalla
         image = "viga.gif"
         print(image)
         fc1 = input("fc [kg/cm^2]: ")
@@ -58,50 +64,69 @@ def mesh_gui():
     return fc, fy, b, h, e, dp
 
 
-
+#Definiendo variables
 a = mesh_gui()
 
-fc = int(a[0])
-fy = int(a[1])
-b = float(a[2])
-h = float(a[3])
-e = float(a[4])
-dp = float(a[5])
+fc = int(a[0])          #f'c del concreto
+fy = int(a[1])          #fy del acero
+b = float(a[2])         #Base de la sección
+h = float(a[3])         #Altura de la sección
+e = float(a[4])         #Espesor de la sección
+dp = float(a[5])        #Valor d'
 
 
+          
+#Caja con mensaje         
+easygui.msgbox("Abrir archivo que contenga listado de los momentos en [t.m]")      
+       
+          
+          
+#Abriendo archivo de texto que contiene valores de los momentos
+archivo1 = easygui.fileopenbox()
+archivo = open(archivo1)
+contenido = archivo.read().splitlines()
+w = int(len(contenido))
+m = w-1
+CO = np.asarray(contenido)
 
-doc = xlrd.open_workbook('Calculo_cantidad_de_acero.xlsx')
-worksheet = doc.sheet_by_name('Hoja1')
 
-Nmomentos = worksheet.cell(1,1) # Llamando el valor de numero de momentos de excel
-m = int(Nmomentos.value) # Asignando valor numerico, numero de momentos
-M = np.zeros((m,2), dtype = float) #Matriz que acomula los momentos y las distancias
+M = np.zeros(m)         #Vector que acomula los momentos y las distancias
+
+#Llenando el vector de momentos
 
 for i in range(m):
-    M[i,0] = float(format(worksheet.cell(10+i, 1).value)) #Llenand0 la matriz
-    M[i,1] = float(format(worksheet.cell(10+i, 2).value))
+    M[i] = CO[i]
+    M[i] = round(M[i],2)
 print(M)
+
+
+#Constantes
 
 fi = 0.9 #Constante fi para diseño
 d = float(h)-float(e) #Valor 'd' que depende de la altura y el espesor
 em = fy/(0.85*fc) 
-print("m: ", em) 
 
 
+
+#Llenado vector que acomula la constante R
 R = np.zeros(int(m))
 for j in range(m): 
-   R[j] = round((M[j,0]*(10**5))/(fi*b*(d**2)),2) #Calculo de 'R'
+   R[j] = round((M[j]*(10**5))/(fi*b*(d**2)),2) #Calculo de 'R'
 print("Verctor R: ", R)
 
-
-if fc <= 280: #Calculo de beta
+#Calculo de beta
+if fc <= 280: 
  bi = 0.85
 elif fc >= 560:
  bi = 0.65
 else:
     bi=0.85-(fc-280)*(0.05/70)
 
-p1 = 14/fy   #Cuantia minima
+
+#Valores maximos y minimos
+
+#Cuantia mínima
+p1 = 14/fy   
 p2 = (0.8*(fc**0.5))/fy
      
 if p1>p2:
@@ -110,14 +135,18 @@ else:
     pmin = round(p2,5)
 print("Pmin: ", pmin) 
 
+
+#Cuantia Máxima
 cd=0.003/(0.005+0.003) 
 pmax = round((bi*cd)/em,5)#Cuantia maxima
 print("Pmax: ", pmax) 
 
-Rmax=float(pmax*fy*(1-((pmax*em)/2))) #Valor maximo que puede tomar 'R' para refuerzo sencillo
-print('Rmax ', Rmax)
-Rmin=float(pmin*fy*(1-((pmin*em)/2))) #Valor minimo que puede tomar 'R' para refuerzo sencillo
-print('Rmin ', Rmin)
+ #Valor maximo que puede tomar 'R' para refuerzo sencillo
+Rmax=float(pmax*fy*(1-((pmax*em)/2)))
+
+#Valor minimo que puede tomar 'R' para refuerzo sencillo
+Rmin=float(pmin*fy*(1-((pmin*em)/2))) 
+
 
 Pdi = np.zeros(int(m)) #Vector que acomula las cuantias de diseño
 P = np.zeros(int(m)) #Vector que acomula las cuantias a usar
@@ -131,9 +160,13 @@ n=0
 for n in range(m):
     DM=0
     As1=0
-    Pdi[n] = round((1/em)*(1-((1-((2*em*R[n])/fy))**0.5)),5) #Calculo de la cuantia de diseño
+    #Calculo de la cuantia de diseño
+    Pdi[n] = round((1/em)*(1-((1-((2*em*R[n])/fy))**0.5)),5) 
    
-    if Pdi[n]<pmin: #Si la cuantia de diseño es menor a la minimma se toma la minima
+    
+    #Si la cuantia de diseño es menor a la minimma se toma la minima
+    
+    if Pdi[n]<pmin: 
        P[n] = pmin
        As[n] = round(P[n]*b*d,2)
        c = ((As[n])*fy)/(0.85*fc*b*bi)
@@ -141,22 +174,21 @@ for n in range(m):
        esp[n] = 0
        es[n] = round((0.003*(d-c))/c,4)
          
-         
+    #Si la cuantia de diseño es mayorr a la máxima requiere doble refuerzo
+     
     elif Pdi[n]>pmax:
-       DM = (M[n,0])-((Rmax*fi*b*(d**2))/(10**5)) #Momento que no alcanza a satisfacer la cuantia maxima
-       print ('DM', DM)
+       DM = (M[n,0])-((Rmax*fi*b*(d**2))/(10**5))       #Momento que no alcanza a satisfacer la cuantia maxima
        As1 = pmax*b*d
-       print('As1', As1)
        c = (As1*fy)/(0.85*fc*b*bi)
-       
        As2[n] = round((DM*(10**5))/(fi*fy*(d-dp)),2)
-       As[n] = round(As1+As2[n],2)
-            
+       As[n] = round(As1+As2[n],2)            
        esp[n] = round((0.003*(c-dp))/c,4)
        es[n] = round((0.003*(d-c))/c,4)
        P[n] = round(float(As[n]/(b*d)),5)
        CD[n] = round(c/d,4)
-           
+       
+       
+       #En el caso que el acero en la zona de compresión no fluya
        if esp[n] <= 0.0020 and es[n] > 0.0049:  #Recalcular c
            
            
@@ -166,17 +198,17 @@ for n in range(m):
            CD[n] = round(c/d,4)
            As2[n] = round(((DM*(10**5))/(fi*fy*(d-dp))),2)
            As[n] = round(As1+As2[n]*((esp[n]*2000000)/fy),2)
-           print('esp[n]', esp[n])
-           print(fy)
-           
+
+    #Si la cuantia de diseño esta en los rangos permitidos se toma la de diseño.       
     else:
-       P[n]=Pdi[n]  #Si la cuantia de diseño esta en los rangos permitidos se toma la de diseño.
+       P[n]=Pdi[n]  
        As[n] = round(P[n]*b*d,2)
        c = ((As[n])*fy)/(0.85*fc*b*bi)
        CD[n] = round(c/d,4)
        esp[n] = 0
        es[n] = round((0.003*(d-c))/c,4)
-     
+ 
+#Mostrando resultados    
 print("Verctor Pdi: ", Pdi)
 print("Verctor P: ", P)
 print("Verctor As: ", As)
@@ -185,10 +217,14 @@ print("Verctor CD: ", CD)
 print("Verctor es: ", es)
 print("Verctor esp: ", esp)
 
-ws = copy(doc)
-ws.save('Resultados_cantidad_de_acero.xls')
 
-rb = xlrd.open_workbook('Resultados_cantidad_de_acero.xls')
+
+libro = xlwt.Workbook()                                         #Crea un nuevo libro de excel
+libro1 = libro.add_sheet("Resultados")                          #Añade una hoja
+libro.save('Resultados_cantidad_de_acero.xls')                  #Guarda el libro
+
+#Abriendo libro a editar
+rb = xlrd.open_workbook('Resultados_cantidad_de_acero.xls')     
 wb = copy(rb)
 w_sheet = wb.get_sheet(0)
 
@@ -196,25 +232,53 @@ w_sheet = wb.get_sheet(0)
 
 for i in range (m):
     
-    w_sheet.write(3,1,"valor ø")
-    w_sheet.write(4,1,fi)
-    w_sheet.write(3,2,"valor β")
-    w_sheet.write(4,2,bi)
-    w_sheet.write(3,3,"valor ρmin")
-    w_sheet.write(4,3,pmin)
-    w_sheet.write(3,4,"valor ρmax")
-    w_sheet.write(4,4,pmax)   
     
     
+    #Almacenando valores y titulos de las constantes
+    
+    w_sheet.write(2,2,"fc (kg/cm^2)")
+    w_sheet.write(3,2,fc)  
+    w_sheet.write(2,3,"fy (kg/cm^2)")
+    w_sheet.write(3,3,fy)        
+    w_sheet.write(2,4,"Base (cm)")
+    w_sheet.write(3,4,b)      
+    w_sheet.write(2,5,"Altura (cm)")
+    w_sheet.write(3,5,h)    
+    w_sheet.write(2,6,"Recubriento (cm)")
+    w_sheet.write(3,6,e)    
+    w_sheet.write(2,7,"d' (cm)")
+    w_sheet.write(3,7,dp)    
+    
+    
+    
+    w_sheet.write(5,2,"valor ø")
+    w_sheet.write(6,2,fi)
+    w_sheet.write(5,3,"valor β")
+    w_sheet.write(6,3,bi)
+    w_sheet.write(5,4,"valor ρmin")
+    w_sheet.write(6,4,pmin)
+    w_sheet.write(5,5,"valor ρmax")
+    w_sheet.write(6,5,pmax)
+    w_sheet.write(5,6,"valor Rmin")
+    w_sheet.write(6,6,Rmin)
+    w_sheet.write(5,7,"valor Rmax")
+    w_sheet.write(6,7,Rmax)
+    
+    
+    #Almacenando titulos de los resultados
+    w_sheet.write(9,2,"Momentos (t.m)")
     w_sheet.write(9,3,"Valor R")
     w_sheet.write(9,4,"ρ de diseño")
     w_sheet.write(9,5,"ρ de final") 
     w_sheet.write(9,6,"c\d")    
     w_sheet.write(9,7,"εs tensión")
     w_sheet.write(9,8,"εs compresión")
-    w_sheet.write(9,9,"As")
-    w_sheet.write(9,10,"As'")
+    w_sheet.write(9,9,"As (cm^2)")
+    w_sheet.write(9,10,"As' (cm^2)")
     
+    
+    #Almacenado Valores de los resultados
+    w_sheet.write(10+i,2,M[i])
     w_sheet.write(10+i,3,R[i])      
     w_sheet.write(10+i,4,Pdi[i])
     w_sheet.write(10+i,5,P[i])
@@ -226,6 +290,3 @@ for i in range (m):
    
  
 wb.save('Resultados_cantidad_de_acero.xls')
-
-
-
